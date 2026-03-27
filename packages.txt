@@ -1,6 +1,4 @@
 ffmpeg
-pkg-config
-cmake
 libcairo2
 libpango-1.0-0
 libpangocairo-1.0-0
