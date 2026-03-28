@@ -9,7 +9,7 @@ except Exception as e:
 
 
 st.set_page_config(layout="wide")
-st.title("🎥 Briot-Ruffini Interativo Educacional")
+st.title("🎥 Briot-Ruffini Interativo")
 
 def video_grande(path):
     st.video(path)
