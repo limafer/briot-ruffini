@@ -1,5 +1,6 @@
-streamlit
-manim
-numpy
-pillow
-matplotlib
+# =========================
+# 📜 requirements.txt
+# =========================
+streamlit==1.32.0
+manim==0.18.0
+numpy==1.26.4

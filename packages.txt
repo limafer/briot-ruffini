@@ -1,6 +1,10 @@
+# =========================
+# 🧰 packages.txt (dependências do sistema)
+# =========================
 ffmpeg
-libcairo2
-libpango-1.0-0
-libpangocairo-1.0-0
-texlive
+cairo
+pkg-config
+latexmk
 texlive-latex-extra
+texlive-fonts-extra
+texlive-latex-recommended

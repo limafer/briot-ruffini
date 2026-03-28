@@ -115,6 +115,5 @@ class BriotRuffiniDinamico(Scene):
             color=BLUE
         ).to_edge(DOWN)
 
-
         self.play(Write(resultado))
         self.wait(3)
