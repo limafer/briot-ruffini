@@ -1,94 +1,100 @@
 import streamlit as st
-import base64
-
-try:
-    from utils import render_manim, parse_polinomio
-except Exception as e:
-    import streamlit as st
-    st.error(f"Erro ao importar utils: {e}")
+import numpy as np
+import matplotlib.pyplot as plt
+from utils import render_manim, parse_polinomio
 
 
-st.set_page_config(layout="wide")
-st.title("🎥 Briot-Ruffini Interativo")
+def avaliar(coef_vals, x):
+    resultado = 0.0
+    for c in coef_vals:
+        resultado = resultado * x + c
+    return resultado
 
-def video_grande(path):
-    st.video(path)
-    #video_bytes = open(path, "rb").read()
-    video_base64 = base64.b64encode(video_bytes).decode()
 
-    st.markdown(f"""
-    <video width="100%" height="600" controls>
-        <source src="data:video/mp4;base64,{video_base64}" type="video/mp4">
-    </video>
-    """, unsafe_allow_html=True)
+def plot_polinomio(coef_list, a):
+    xs = np.linspace(a - 4, a + 4, 500)
+    ys = [avaliar(coef_list, x) for x in xs]
 
-# -------------------------------
-# Entrada do polinômio
-# -------------------------------
-expr = st.text_input(
-    "Polinômio:",
-    "x^3 - 6x^2 + 11x - 6"
+    fig, ax = plt.subplots(figsize=(6, 3.5))
+    fig.patch.set_facecolor("#0e1117")
+    ax.set_facecolor("#0e1117")
+
+    ax.plot(xs, ys, color="#2dd4bf", linewidth=2)
+    ax.axhline(0, color="#6b7280", linewidth=0.8)
+    ax.axvline(0, color="#6b7280", linewidth=0.8)
+
+    ax.scatter([a], [0], color="#facc15", zorder=5, s=60)
+    ax.annotate(
+        f"a = {a:g}",
+        xy=(a, 0),
+        xytext=(a + 0.2, max(ys) * 0.08 if max(ys) != 0 else 0.5),
+        color="#facc15",
+        fontsize=9,
+    )
+
+    ax.tick_params(colors="#9ca3af", labelsize=8)
+    for spine in ax.spines.values():
+        spine.set_edgecolor("#374151")
+
+    ax.set_title("p(x)", color="#d1d5db", fontsize=10)
+    fig.tight_layout()
+    return fig
+
+st.set_page_config(
+    page_title="Briot-Ruffini",
+    page_icon="polynomial",
+    layout="centered"
 )
 
-# -------------------------------
-# Entrada da raiz
-# -------------------------------
-a = st.number_input("Valor de a:", value=1.0)
+st.title("Dispositivo de Briot-Ruffini")
+st.caption("Gera uma animação passo a passo da divisão de polinômios pelo dispositivo prático.")
 
-# -------------------------------
-# Processamento
-# -------------------------------
+st.divider()
 
-try:
-    coef_list = parse_polinomio(expr)
-    coef_string = ",".join(map(str, coef_list))
-    st.write("Coeficientes:", coef_list)
-except Exception as e:
-    st.error(f"Erro no polinômio: {e}")
-    coef_string = None
+col1, col2 = st.columns([3, 1])
 
-if st.button("🎬 Gerar Animação"):
+with col1:
+    expr = st.text_input(
+        "Polinômio p(x)",
+        value="x^3 - 6x^2 + 11x - 6",
+        placeholder="Ex: x^3 - 6x^2 + 11x - 6",
+        help="Use ^ para expoentes. Exemplo: 2x^3 - x + 5"
+    )
 
+with col2:
+    a = st.number_input(
+        "Valor de a",
+        value=1.0,
+        step=0.5,
+        help="Raiz que divide o polinômio: p(x) ÷ (x − a)"
+    )
+
+coef_list   = None
+coef_string = None
+
+if expr.strip():
+    try:
+        coef_list   = parse_polinomio(expr)
+        coef_string = ",".join(map(str, coef_list))
+        grau        = len(coef_list) - 1
+        st.info(f"Grau {grau}  |  Coeficientes: {coef_list}")
+    except Exception as e:
+        st.error(f"Erro ao interpretar o polinômio: {e}")
+
+if coef_list is not None:
+    st.pyplot(plot_polinomio(coef_list, a))
+
+st.divider()
+
+if st.button("Gerar Animacao", type="primary", use_container_width=True):
     if coef_string is None:
-        st.error("Entrada inválida")
+        st.error("Corrija o polinômio antes de continuar.")
     else:
-        with st.spinner("Renderizando..."):
+        with st.spinner("Renderizando animação..."):
             video_path = render_manim(coef_string, a)
 
         if video_path:
+            st.success("Animação gerada com sucesso.")
             st.video(video_path)
-            st.success("Vídeo gerado 🚀")
         else:
-            st.error("Erro ao gerar vídeo")
-
-
-#try:
-#    coef_list = parse_polinomio(expr)
-#    coef_string = ",".join(map(str, coef_list))
-#    st.write("Coeficientes:", coef_list)
-#except:
-#    st.error("Erro no polinômio")
-#    coef_string = None
-
-#@st.cache_data
-#def gerar_video(coef_string,a):
-#    return render_manim(coef_string,a)
-
-
-# -------------------------------
-# Botão
-# -------------------------------
-#if st.button("🎬 Gerar Animação"):
-#
-#    if coef_string is None:
-#        st.error("Entrada inválida")
-#
-#    else:
-#        with st.spinner("Renderizando..."):
-#            video_path = gerar_video(coef_string, a)
-
-#        if video_path:
-#            video_grande(video_path)
-#            st.success("Vídeo gerado 🚀")
-#        else:
-#            st.error("Erro ao gerar vídeo")
+            st.error("Falha ao gerar o vídeo. Verifique o terminal para detalhes.")

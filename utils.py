@@ -1,76 +1,70 @@
 import subprocess
 import os
-
 import re
 
-def parse_polinomio(expr):
-    expr = expr.replace(" ", "")
 
-    if expr[0] != "-":
+def parse_polinomio(expr: str) -> list[float]:
+    expr = expr.strip().replace(" ", "").replace("**", "^")
+
+    expr = re.sub(r'(\d)(x)', r'\1*\2', expr)
+
+    if not expr.startswith(("+", "-")):
         expr = "+" + expr
 
-    termos = re.findall(r'[+-][^+-]+', expr)
+    termos = re.findall(r'[+\-][^+\-]+', expr)
 
-    coef_dict = {}
+    coef_dict: dict[int, float] = {}
 
     for termo in termos:
-        sinal = -1 if termo[0] == '-' else 1
-        termo = termo[1:]
+        sinal = -1.0 if termo[0] == '-' else 1.0
+        corpo = termo[1:].replace("*", "")
 
-        if 'x' not in termo:
-            coef = int(termo) * sinal
+        if 'x' not in corpo:
+            coef = float(corpo) * sinal
             grau = 0
         else:
-            if termo.startswith('x'):
-                coef = 1
-            else:
-                coef = int(termo.split('x')[0])
+            partes = corpo.split('x')
+            parte_coef = partes[0]
+            parte_exp  = partes[1] if len(partes) > 1 else ""
 
-            coef *= sinal
+            coef = float(parte_coef) * sinal if parte_coef else sinal
 
-            if '^' in termo:
-                grau = int(termo.split('^')[1])
+            if parte_exp.startswith("^"):
+                grau = int(parte_exp[1:])
             else:
                 grau = 1
 
-        coef_dict[grau] = coef
+        coef_dict[grau] = coef_dict.get(grau, 0.0) + coef
+
+    if not coef_dict:
+        raise ValueError("Nenhum termo encontrado no polinômio.")
 
     grau_max = max(coef_dict.keys())
 
-    coef_list = []
-    for i in range(grau_max, -1, -1):
-        coef_list.append(coef_dict.get(i, 0))
+    return [coef_dict.get(i, 0.0) for i in range(grau_max, -1, -1)]
 
-    return coef_list
 
-def render_manim(coef_string, raiz):
-
+def render_manim(coef_string: str, raiz: float) -> str | None:
     try:
-        # salvar entradas
         with open("coef.txt", "w") as f:
             f.write(coef_string)
 
         with open("raiz.txt", "w") as f:
             f.write(str(raiz))
 
-        cmd = [
-            "manim",
-            "-ql",
-            "briot-dinamico.py",
-            "BriotRuffiniDinamico"
-        ]
+        cmd = ["manim", "-ql", "briot-dinamico.py", "BriotRuffiniDinamico"]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        print(result.stdout)
-        print(result.stderr)
+        if result.returncode != 0:
+            print("STDOUT:", result.stdout[-2000:])
+            print("STDERR:", result.stderr[-2000:])
 
         video_path = "media/videos/briot-dinamico/480p15/BriotRuffiniDinamico.mp4"
+        return video_path if os.path.exists(video_path) else None
 
-        if os.path.exists(video_path):
-            return video_path
+    except subprocess.TimeoutExpired:
+        print("Erro: timeout ao renderizar")
         return None
-
     except Exception as e:
         print("Erro:", e)
         return None
